@@ -9,14 +9,14 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from Src.Utils import get_results, anno_space_map
-from Src.CHMM.NHMMData import Dataset
+from Src.CHMM.CHMMData import Dataset
 from Src.DataAssist import initialise_transmat, initialise_emissions
-from Src.CHMM.NHMMModel import NeuralHMM
+from Src.CHMM.CHMMModel import NeuralHMM
 
 logger = logging.getLogger(__name__)
 
 
-class NHMMTrainer:
+class CHMMTrainer:
     def __init__(self, training_args, data_args,
                  train_dataset, eval_dataset, test_dataset,
                  collate_fn, pretrain_optimizer=None, optimizer=None):
@@ -142,7 +142,6 @@ class NHMMTrainer:
             # track loss
             train_loss += loss.item() * batch_size
         train_loss /= num_samples
-        # print(train_loss)
 
         return train_loss
 
@@ -190,7 +189,7 @@ class NHMMTrainer:
 
             # ----- log history -----
             micro_results.append(results['micro'])
-            if tolerance_epoch > self.training_args.nhmm_tolerance_epoch:
+            if tolerance_epoch > self.training_args.chmm_tolerance_epoch:
                 logger.info("Training stopped because of exceeded tolerance")
                 break
 

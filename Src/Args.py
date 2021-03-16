@@ -34,24 +34,8 @@ class Arguments:
         default=None,
         metadata={"help": "From which weak model the scores are generated."}
     )
-    max_seq_length: Optional[int] = field(
-        default=128,
-        metadata={
-            "help": "The maximum total input sequence length after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded."
-        },
-    )
     overwrite_cache: Optional[bool] = field(
         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
-    )
-    self_training_start_epoch: Optional[int] = field(
-        default=1, metadata={"help": "After how many epochs do we to start self-training"}
-    )
-    teacher_update_period: Optional[int] = field(
-        default=1, metadata={"help": "How many epochs do we update the teacher model"}
-    )
-    bert_tolerance_epoch: int = field(
-        default=60, metadata={"help": "How many tolerance epochs before quiting training"}
     )
     converse_first: bool = field(
         default=False, metadata={'help': 'converse the annotation space before (True) or after training'}
@@ -83,7 +67,7 @@ class Arguments:
     denoising_pretrain_epoch: int = field(
         default=5, metadata={'help': 'number of denoising model pre-train training epochs'}
     )
-    nhmm_tolerance_epoch: int = field(
+    chmm_tolerance_epoch: int = field(
         default=10, metadata={"help": "How many tolerance epochs before quiting training"}
     )
     retraining_loops: int = field(

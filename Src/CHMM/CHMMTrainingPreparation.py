@@ -1,11 +1,11 @@
 import os
 import torch
 from Src.DataAssist import extract_sequence, converse_ontonote_to_conll
-from Src.CHMM.NHMMData import Dataset, collate_fn
-from Src.CHMM.NHMMTrain import NHMMTrainer
+from Src.CHMM.CHMMData import Dataset, collate_fn
+from Src.CHMM.CHMMTrain import CHMMTrainer
 
 
-def prepare_chmm_training(args) -> NHMMTrainer:
+def prepare_chmm_training(args) -> CHMMTrainer:
 
     # ----- construct dataset -----
     ontonote_anno_scheme = True if (args.dataset_name == 'Co03' and not args.converse_first) or \
@@ -47,7 +47,7 @@ def prepare_chmm_training(args) -> NHMMTrainer:
     args.n_hidden = args.n_obs
 
     # ----- initialize training process -----
-    trainer = NHMMTrainer(
+    trainer = CHMMTrainer(
         training_args=args,
         data_args=args,
         train_dataset=train_dataset,

@@ -11,7 +11,7 @@ from transformers import (
     set_seed,
 )
 from Src.Args import Arguments, expend_args
-from Src.CHMM.NHMMTrainingPreparation import prepare_chmm_training
+from Src.CHMM.CHMMTrainingPreparation import prepare_chmm_training
 
 logger = logging.getLogger(__name__)
 
