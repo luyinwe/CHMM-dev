@@ -4,7 +4,7 @@ from typing import List, Dict, Tuple, Optional, Any
 from tokenizations import get_alignments, get_original_spans
 from Src.Constants import CoNLL_SOURCE_NAMES, OntoNotes_INDICES, CoNLL_SOURCE_PRIORS, OntoNotes_BIO,\
     OUT_RECALL, OUT_PRECISION
-from Src.NHMM.NHMMData import Dataset, collate_fn
+from Src.CHMM.NHMMData import Dataset, collate_fn
 from tqdm.auto import tqdm
 from torch.utils.data import DataLoader
 

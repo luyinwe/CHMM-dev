@@ -9,9 +9,9 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from Src.Utils import get_results, anno_space_map
-from Src.NHMM.NHMMData import Dataset
+from Src.CHMM.NHMMData import Dataset
 from Src.DataAssist import initialise_transmat, initialise_emissions
-from Src.NHMM.NHMMModel import NeuralHMM
+from Src.CHMM.NHMMModel import NeuralHMM
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +243,7 @@ class NHMMTrainer:
         elif partition == 'test':
             data_loader = self.get_test_dataloader()
         else:
-            raise ValueError("[NHMM] invalid data partition")
+            raise ValueError("[CHMM] invalid data partition")
 
         score_list = list()
         span_list = list()
@@ -273,7 +273,7 @@ class NHMMTrainer:
             )
             return train_loader
         else:
-            raise ValueError("[NHMM] Training dataset is not defined!")
+            raise ValueError("[CHMM] Training dataset is not defined!")
 
     def get_eval_dataloader(self):
         if self.eval_dataset:
@@ -286,7 +286,7 @@ class NHMMTrainer:
             )
             return eval_loader
         else:
-            raise ValueError("[NHMM] Evaluation dataset is not defined!")
+            raise ValueError("[CHMM] Evaluation dataset is not defined!")
 
     def get_test_dataloader(self):
         if self.test_dataset:
@@ -299,7 +299,7 @@ class NHMMTrainer:
             )
             return test_loader
         else:
-            raise ValueError("[NHMM] Test dataset is not defined!")
+            raise ValueError("[CHMM] Test dataset is not defined!")
 
     def get_pretrain_optimizer(self):
         pretrain_optimizer = torch.optim.Adam(

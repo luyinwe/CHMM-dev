@@ -1,5 +1,6 @@
 import os
 import json
+import torch
 from dataclasses import dataclass, field
 from typing import Optional
 from Src.Constants import *
@@ -13,6 +14,9 @@ class Arguments:
 
     data_dir: str = field(
         metadata={"help": "The input data dir. Should contain the .txt files for a CoNLL-2003-formatted task."}
+    )
+    output_dir: str = field(
+        metadata={"help": "The output dir."}
     )
     dataset_name: str = field(
         metadata={"help": "The name of the dataset."}
@@ -59,7 +63,7 @@ class Arguments:
         default=False, metadata={'help': 'whether update embeddings during mixed training process'}
     )
     redistribute_confidence: bool = field(
-        default=False, metadata={'help': 'whether to make the NHMM output sharper'}
+        default=False, metadata={'help': 'whether to make the CHMM output sharper'}
     )
     phase2_train_epochs: int = field(
         default=20, metadata={'help': 'phase 2 fine-tuning epochs'}
@@ -99,6 +103,12 @@ class Arguments:
     )
     ontonote_anno_scheme: bool = field(
         default=False, metadata={'help': 'whether to use ontonote annotation scheme'}
+    )
+    device: str = field(
+        default='cuda', metadata={'help': 'the device you want to use'}
+    )
+    seed: int = field(
+        default=0, metadata={'help': 'random seed'}
     )
 
 
@@ -161,14 +171,7 @@ def expend_args(args):
         args.src = data['sources']
         args.src_to_keep = data['sources-to-keep'] if 'sources-to-keep' in data.keys() else data['sources']
         args.src_priors = data['priors'] if 'priors' in data.keys() else \
-            {src: {lb: (0.8, 0.8) for lb in args.lbs} for src in args.src_to_keep}
+            {src_name: {lb: (0.8, 0.8) for lb in args.lbs} for src_name in args.src_to_keep}
         args.mappings = data['mapping'] if 'mapping' in data.keys() else None
 
-    args.self_training_start_epoch = args.self_training_start_epoch
-    args.teacher_update_period = args.teacher_update_period
-    args.bert_tolerance_epoch = args.bert_tolerance_epoch
-    args.model_reinit = args.model_reinit
-    args.update_embeddings = args.update_embeddings
-    args.redistribute_confidence = args.redistribute_confidence
-
-    args.device = args.device
+    args.device = torch.device('cuda') if torch.cuda.is_available() and args.device == 'cuda' else torch.device('cpu')

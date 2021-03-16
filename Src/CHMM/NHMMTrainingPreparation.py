@@ -1,26 +1,26 @@
 import os
 import torch
 from Src.DataAssist import extract_sequence, converse_ontonote_to_conll
-from Src.NHMM.NHMMData import Dataset, collate_fn
-from Src.NHMM.NHMMTrain import NHMMTrainer
+from Src.CHMM.NHMMData import Dataset, collate_fn
+from Src.CHMM.NHMMTrain import NHMMTrainer
 
 
-def prepare_nhmm_training(nhmm_args, data_args, training_args) -> NHMMTrainer:
+def prepare_chmm_training(args) -> NHMMTrainer:
 
     # ----- construct dataset -----
-    ontonote_anno_scheme = True if (data_args.dataset_name == 'Co03' and not data_args.converse_first) or \
-        nhmm_args.ontonote_anno_scheme else False
+    ontonote_anno_scheme = True if (args.dataset_name == 'Co03' and not args.converse_first) or \
+                                   args.ontonote_anno_scheme else False
 
-    nhmm_args.output_dir = training_args.output_dir
+    args.output_dir = args.output_dir
     
     exp_train_sents, train_embs, train_lbs, train_weak_lbs = load_features(
-        'train', data_args, ontonote_anno_scheme
+        'train', args, ontonote_anno_scheme
     )
     exp_dev_sents, dev_embs, dev_lbs, dev_weak_lbs = load_features(
-        'dev', data_args, ontonote_anno_scheme
+        'dev', args, ontonote_anno_scheme
     )
     exp_test_sents, test_embs, test_lbs, test_weak_lbs = load_features(
-        'test', data_args, ontonote_anno_scheme
+        'test', args, ontonote_anno_scheme
     )
 
     train_dataset = Dataset(
@@ -42,14 +42,14 @@ def prepare_nhmm_training(nhmm_args, data_args, training_args) -> NHMMTrainer:
         lbs=test_lbs
     )
 
-    nhmm_args.d_emb = train_embs[0].size(-1)
-    _, nhmm_args.n_src, nhmm_args.n_obs = train_weak_lbs[0].size()
-    nhmm_args.n_hidden = nhmm_args.n_obs
+    args.d_emb = train_embs[0].size(-1)
+    _, args.n_src, args.n_obs = train_weak_lbs[0].size()
+    args.n_hidden = args.n_obs
 
     # ----- initialize training process -----
     trainer = NHMMTrainer(
-        training_args=nhmm_args,
-        data_args=data_args,
+        training_args=args,
+        data_args=args,
         train_dataset=train_dataset,
         eval_dataset=dev_dataset,
         test_dataset=test_dataset,

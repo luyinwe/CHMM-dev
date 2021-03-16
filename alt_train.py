@@ -8,11 +8,10 @@ import torch
 
 from transformers import (
     HfArgumentParser,
-    TrainingArguments,
     set_seed,
 )
 from Src.Args import Arguments, expend_args
-from Src.NHMM.NHMMTrainingPreparation import prepare_nhmm_training
+from Src.CHMM.NHMMTrainingPreparation import prepare_chmm_training
 
 logger = logging.getLogger(__name__)
 
@@ -23,50 +22,33 @@ def main():
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, nhmm_args, training_args = parser.parse_json_file(
-            json_file=os.path.abspath(sys.argv[1])
-        )
+        args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))[0]
     else:
-        model_args, data_args, nhmm_args, training_args = parser.parse_args_into_dataclasses()
-    expend_args(args=training_args, args=nhmm_args, args=data_args)
+        args = parser.parse_args_into_dataclasses()[0]
+    expend_args(args=args)
 
-    if not os.path.exists(training_args.output_dir):
-        os.makedirs(training_args.output_dir)
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
     # --- setup logging ---
     logging.basicConfig(
         format="[%(levelname)s - %(name)s] - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO if training_args.local_rank in [-1, 0] else logging.WARN,
+        level=logging.INFO
     )
-    logger.info(
-        "Process rank: %s, device: %s, n_gpu: %s, distributed training: %s, 16-bits training: %s",
-        training_args.local_rank,
-        training_args.device,
-        training_args.n_gpu,
-        bool(training_args.local_rank != -1),
-        training_args.fp16,
-    )
-    logger.info("Training/evaluation parameters %s", training_args)
+    logger.info("Training/evaluation parameters %s", args)
 
     # --- initialize result-storing file ---
-    denoising_model = data_args.denoising_model if data_args.denoising_model else 'true'
-    bert_output = os.path.join(
-        training_args.output_dir, f"{data_args.dataset_name}-{denoising_model}-{training_args.seed}-bert_results"
-    )
+    denoising_model = args.denoising_model if args.denoising_model else 'true'
     nhmm_output = os.path.join(
-        training_args.output_dir, f"{data_args.dataset_name}-{denoising_model}-{training_args.seed}_results"
+        args.output_dir, f"{args.dataset_name}-{denoising_model}-{args.seed}_results"
     )
-    if os.path.exists(bert_output):
-        os.remove(bert_output)
 
     # --- Set seed ---
-    set_seed(training_args.seed)
+    set_seed(args.seed)
 
     # --- setup Neural HMM training functions ---
-    nhmm_trainer = prepare_nhmm_training(
-        nhmm_args=nhmm_args, data_args=data_args, training_args=training_args
-    )
+    nhmm_trainer = prepare_chmm_training(args=args)
 
     # --- train Neural HMM ---
     logger.info(" --- starting Neural HMM training process --- ")
