@@ -1,0 +1,2 @@
+,entity_precision,entity_recall,token_precision,token_recall,entity_f1,token_f1
+0,0.7293,0.6355,0.9156,0.6504,0.6792,0.7606
