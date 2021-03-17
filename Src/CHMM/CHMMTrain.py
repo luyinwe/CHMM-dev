@@ -4,33 +4,34 @@ import copy
 import os
 import numpy as np
 from tqdm.auto import tqdm
-from typing import List
+from typing import List, Optional
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from Src.Utils import get_results, anno_space_map
 from Src.CHMM.CHMMData import Dataset
 from Src.DataAssist import initialise_transmat, initialise_emissions
-from Src.CHMM.CHMMModel import NeuralHMM
+from Src.CHMM.CHMMModel import ConditionalHMM
 
 logger = logging.getLogger(__name__)
 
 
 class CHMMTrainer:
-    def __init__(self, training_args, data_args,
+    def __init__(self, args,
                  train_dataset, eval_dataset, test_dataset,
-                 collate_fn, pretrain_optimizer=None, optimizer=None):
+                 collate_fn, pretrain_optimizer=None, optimizer=None,
+                 src_weights: Optional[List[float]] = None):
 
         self.model = None
-        self.data_args = data_args
-        self.training_args = training_args
-        self.device = training_args.device
+        self.args = args
+        self.device = args.device
         self.train_dataset = train_dataset
         self.eval_dataset = eval_dataset
         self.test_dataset = test_dataset
         self.collate_fn = collate_fn
         self.pretrain_optimizer = pretrain_optimizer
         self.optimizer = optimizer
+        self.src_weights = src_weights
         self.state_prior = None
         self.trans_mat = None
         self.emiss_mat = None
@@ -44,24 +45,24 @@ class CHMMTrainer:
     def initialize_matrices(self):
         assert self.train_dataset and self.eval_dataset
         # inject prior knowledge about transition and emission
-        self.state_prior = torch.zeros(self.training_args.n_hidden, device=self.device) + 1e-2
+        self.state_prior = torch.zeros(self.args.n_hidden, device=self.device) + 1e-2
         self.state_prior[0] += 1 - self.state_prior.sum()
 
         intg_obs = list(map(np.array, self.train_dataset.obs + self.eval_dataset.obs))
         self.trans_mat = torch.tensor(initialise_transmat(
-            observations=intg_obs, label_set=self.data_args.bio_lbs)[0], dtype=torch.float)
+            observations=intg_obs, label_set=self.args.bio_lbs)[0], dtype=torch.float)
         self.emiss_mat = torch.tensor(initialise_emissions(
-            observations=intg_obs, label_set=self.data_args.bio_lbs,
-            sources=self.data_args.src_to_keep, src_priors=self.data_args.src_priors
+            observations=intg_obs, label_set=self.args.bio_lbs,
+            sources=self.args.src_to_keep, src_priors=self.args.src_priors
         )[0], dtype=torch.float)
 
     def initialize_model(self):
-        self.model = NeuralHMM(
-            args=self.training_args,
+        self.model = ConditionalHMM(
+            args=self.args,
             state_prior=self.state_prior,
             trans_matrix=self.trans_mat,
             emiss_matrix=self.emiss_mat,
-            device=self.device
+            src_weights=self.src_weights
         )
 
     def initialize_optimizers(self, optimizer=None, pretrain_optimizer=None):
@@ -98,7 +99,7 @@ class CHMMTrainer:
             emiss_mask = loss_mask.view(batch_size, max_seq_len, 1, 1, 1)
             emiss_pred = emiss_mask * nn_emiss
             emiss_true = emiss_mask * emiss_.view(
-                1, 1, self.training_args.n_src, n_hidden, n_obs
+                1, 1, self.args.n_src, n_hidden, n_obs
             ).repeat(batch_size, max_seq_len, 1, 1, 1)
             if trans_ is not None:
                 l1 = F.mse_loss(trans_pred, trans_true)
@@ -132,7 +133,7 @@ class CHMMTrainer:
             optimizer.zero_grad()
             log_probs, _ = self.model(
                 emb=emb_batch, obs=obs_batch, seq_lengths=seq_lens,
-                normalize_observation=self.training_args.obs_normalization
+                normalize_observation=self.args.obs_normalization
             )
 
             loss = -log_probs.mean()
@@ -150,9 +151,9 @@ class CHMMTrainer:
         eval_dataloader = self.get_eval_dataloader()
 
         # ----- pre-train neural module -----
-        if self.training_args.denoising_pretrain_epoch > 0:
+        if self.args.denoising_pretrain_epoch > 0:
             logger.info("[Neural HMM] pre-training neural module")
-            for epoch_i in range(self.training_args.denoising_pretrain_epoch):
+            for epoch_i in range(self.args.denoising_pretrain_epoch):
                 train_loss = self.pretrain_step(
                     train_dataloader, self.pretrain_optimizer, self.trans_mat, self.emiss_mat
                 )
@@ -164,14 +165,14 @@ class CHMMTrainer:
         best_state_dict = None
 
         # ----- start training process -----
-        for epoch_i in range(self.training_args.denoising_epoch):
-            logger.info("========= Epoch %d of %d =========" % (epoch_i + 1, self.training_args.denoising_epoch))
+        for epoch_i in range(self.args.denoising_epoch):
+            logger.info("========= Epoch %d of %d =========" % (epoch_i + 1, self.args.denoising_epoch))
 
             train_loss = self.training_step(train_dataloader, self.optimizer)
             results = self.evaluate(eval_dataloader)
 
             logger.info("========= Results: epoch %d of %d =========" %
-                        (epoch_i + 1, self.training_args.denoising_epoch))
+                        (epoch_i + 1, self.args.denoising_epoch))
             logger.info("[INFO] train loss: %.4f" % train_loss)
             logger.info("[INFO] validation results:")
             for k, v in results['micro'].items():
@@ -189,7 +190,7 @@ class CHMMTrainer:
 
             # ----- log history -----
             micro_results.append(results['micro'])
-            if tolerance_epoch > self.training_args.chmm_tolerance_epoch:
+            if tolerance_epoch > self.args.chmm_tolerance_epoch:
                 logger.info("Training stopped because of exceeded tolerance")
                 break
 
@@ -217,13 +218,13 @@ class CHMMTrainer:
 
                 # get prediction
                 pred_span, _ = self.model.annotate(
-                    emb=emb_batch, obs=obs_batch, seq_lengths=seq_lens, label_set=self.data_args.bio_lbs,
-                    normalize_observation=self.training_args.obs_normalization
+                    emb=emb_batch, obs=obs_batch, seq_lengths=seq_lens, label_set=self.args.bio_lbs,
+                    normalize_observation=self.args.obs_normalization
                 )
 
-                if hasattr(self.data_args, 'mappings'):
-                    if self.data_args.mappings is not None:
-                        pred_span = [anno_space_map(ps, self.data_args.mappings, self.data_args.lbs)
+                if hasattr(self.args, 'mappings'):
+                    if self.args.mappings is not None:
+                        pred_span = [anno_space_map(ps, self.args.mappings, self.args.lbs)
                                      for ps in pred_span]
 
                 batch_pred_span += pred_span
@@ -231,7 +232,7 @@ class CHMMTrainer:
                 # Save source text and spans
                 batch_sent += batch[-2]
                 batch_true_span += batch[-1]
-            results = get_results(batch_pred_span, batch_true_span, batch_sent, all_labels=self.data_args.lbs)
+            results = get_results(batch_pred_span, batch_true_span, batch_sent, all_labels=self.args.lbs)
         return results
 
     def annotate_data(self, partition):
@@ -250,12 +251,12 @@ class CHMMTrainer:
         with torch.no_grad():
             for i, batch in enumerate(tqdm(data_loader)):
                 # get data
-                emb_batch, obs_batch, seq_lens = map(lambda x: x.to(self.training_args.device), batch[:3])
+                emb_batch, obs_batch, seq_lens = map(lambda x: x.to(self.args.device), batch[:3])
                 # get prediction
                 # the scores are shifted back, i.e., len = len(emb)-1 = len(sentence)
                 _, (scored_spans, scores) = self.model.annotate(
-                    emb=emb_batch, obs=obs_batch, seq_lengths=seq_lens, label_set=self.data_args.bio_lbs,
-                    normalize_observation=self.training_args.obs_normalization
+                    emb=emb_batch, obs=obs_batch, seq_lengths=seq_lens, label_set=self.args.bio_lbs,
+                    normalize_observation=self.args.obs_normalization
                 )
                 score_list += scores
                 span_list += scored_spans
@@ -265,7 +266,7 @@ class CHMMTrainer:
         if self.train_dataset:
             train_loader = torch.utils.data.DataLoader(
                 dataset=self.train_dataset,
-                batch_size=self.training_args.denoising_batch_size,
+                batch_size=self.args.denoising_batch_size,
                 collate_fn=self.collate_fn,
                 shuffle=shuffle,
                 drop_last=False
@@ -278,7 +279,7 @@ class CHMMTrainer:
         if self.eval_dataset:
             eval_loader = torch.utils.data.DataLoader(
                 dataset=self.eval_dataset,
-                batch_size=self.training_args.denoising_batch_size,
+                batch_size=self.args.denoising_batch_size,
                 collate_fn=self.collate_fn,
                 shuffle=False,
                 drop_last=False
@@ -291,7 +292,7 @@ class CHMMTrainer:
         if self.test_dataset:
             test_loader = torch.utils.data.DataLoader(
                 dataset=self.test_dataset,
-                batch_size=self.training_args.denoising_batch_size,
+                batch_size=self.args.denoising_batch_size,
                 collate_fn=self.collate_fn,
                 shuffle=False,
                 drop_last=False
@@ -316,9 +317,9 @@ class CHMMTrainer:
             self.model.state_priors
         ]
         optimizer = torch.optim.Adam(
-            [{'params': self.model.nn_module.parameters(), 'lr': self.training_args.nn_lr},
+            [{'params': self.model.nn_module.parameters(), 'lr': self.args.nn_lr},
              {'params': hmm_params}],
-            lr=self.training_args.hmm_lr,
+            lr=self.args.hmm_lr,
             weight_decay=1e-5
         )
         return optimizer
@@ -329,13 +330,13 @@ class CHMMTrainer:
         checkpoint = {
             'model': model_state_dict,
             'optimizer': optimizer_state_dict,
-            'settings': self.training_args
+            'settings': self.args
         }
-        torch.save(checkpoint, os.path.join(self.training_args.output_dir, 'nhmm_model.bin'))
+        torch.save(checkpoint, os.path.join(self.args.output_dir, 'nhmm_model.bin'))
 
     def load_model(self, path=None):
         if path is None:
-            checkpoint = torch.load(os.path.join(self.training_args.output_dir, 'nhmm_model.bin'))
+            checkpoint = torch.load(os.path.join(self.args.output_dir, 'nhmm_model.bin'))
         else:
             checkpoint = torch.load(path)
         self.model.load_state_dict(checkpoint['model'])
@@ -362,11 +363,11 @@ class CHMMTrainer:
         dataset.obs = new_obs
 
         # --- update arguments ---
-        self.training_args.n_src = dataset.obs[0].size(1)
+        self.args.n_src = dataset.obs[0].size(1)
 
-        if 'added_bert' not in self.data_args.src_to_keep:
-            self.data_args.src_to_keep += ['added_bert']
-            self.data_args.src_priors['added_bert'] = {lb: (0.9, 0.9) for lb in self.data_args.lbs}
+        if 'added_bert' not in self.args.src_to_keep:
+            self.args.src_to_keep += ['added_bert']
+            self.args.src_priors['added_bert'] = {lb: (0.9, 0.9) for lb in self.args.lbs}
 
     @staticmethod
     def update_embs(dataset: Dataset, embs: List[np.ndarray]):

@@ -232,6 +232,25 @@ LAPTOP_SOURCE_PRIORS = {
     'ConsecutiveCapitals': {'TERM': (0.7, 0.6)}
 }
 
+LAPTOP_SOURCE_WEIGHTS = {
+    'CoreDictionary': 0.7,
+    'OtherTerms': 0.1,
+    'ReplaceThe': 0.01,
+    'iStuff': 0.3,
+    'Feelings': 0.01,
+    'ProblemWithThe': 0.01,
+    'External': 0.01,
+    'StopWords': 0.01,
+    "Punctuation": 0.01,
+    "Pronouns": 0.01,
+    "NotFeatures": 0.01,
+    "Adv": 0.01,
+    "CompoundPhrase": 0.01,
+    "ElmoLinkingRule": 0.01,
+    'ExtractedPhrase': 0.95,
+    'ConsecutiveCapitals': 0.35
+}
+
 BC5CDR_LABELS = ['Chemical', 'Disease']
 BC5CDR_BIO = ["O"] + ["%s-%s" % (bi, label) for label in BC5CDR_LABELS for bi in "BI"]
 BC5CDR_INDICES = {label: i for i, label in enumerate(BC5CDR_BIO)}

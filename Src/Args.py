@@ -88,6 +88,9 @@ class Arguments:
     ontonote_anno_scheme: bool = field(
         default=False, metadata={'help': 'whether to use ontonote annotation scheme'}
     )
+    use_src_weights: bool = field(
+        default=False, metadata={'help': 'whether to use source weights'}
+    )
     device: str = field(
         default='cuda', metadata={'help': 'the device you want to use'}
     )
@@ -119,6 +122,7 @@ def expend_args(args):
         args.src = LAPTOP_SOURCE_NAMES
         args.src_to_keep = LAPTOP_SOURCES_TO_KEEP
         args.src_priors = LAPTOP_SOURCE_PRIORS
+        args.src_weights = LAPTOP_SOURCE_WEIGHTS
     elif args.dataset_name == 'NCBI':
         args.lbs = NCBI_LABELS
         args.bio_lbs = NCBI_BIO

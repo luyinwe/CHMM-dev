@@ -46,14 +46,21 @@ def prepare_chmm_training(args) -> CHMMTrainer:
     _, args.n_src, args.n_obs = train_weak_lbs[0].size()
     args.n_hidden = args.n_obs
 
+    if not args.use_src_weights:
+        src_weights = None
+    else:
+        src_weights = list()
+        for k in args.src_to_keep:
+            src_weights.append(args.src_weights[k])
+
     # ----- initialize training process -----
     trainer = CHMMTrainer(
-        training_args=args,
-        data_args=args,
+        args=args,
         train_dataset=train_dataset,
         eval_dataset=dev_dataset,
         test_dataset=test_dataset,
-        collate_fn=collate_fn
+        collate_fn=collate_fn,
+        src_weights=src_weights
     )
 
     return trainer

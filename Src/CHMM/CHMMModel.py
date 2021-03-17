@@ -1,9 +1,10 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from Src.Utils import log_matmul, log_maxmul, validate_prob, logsumexp
 from Src.DataAssist import label_to_span
-from typing import Optional
+from typing import Optional, List
 
 
 class NeuralModule(nn.Module):
@@ -44,15 +45,15 @@ class NeuralModule(nn.Module):
             nn.init.xavier_uniform_(emiss.weight.data, gain=nn.init.calculate_gain('relu'))
 
 
-class NeuralHMM(nn.Module):
+class ConditionalHMM(nn.Module):
 
     def __init__(self,
                  args,
                  state_prior=None,
                  trans_matrix=None,
                  emiss_matrix=None,
-                 device='cpu'):
-        super(NeuralHMM, self).__init__()
+                 src_weights: Optional[List[float]] = None):
+        super(ConditionalHMM, self).__init__()
 
         self.d_emb = args.d_emb  # embedding dimension
         self.n_src = args.n_src
@@ -62,7 +63,16 @@ class NeuralHMM(nn.Module):
         self.trans_weight = args.trans_nn_weight
         self.emiss_weight = args.emiss_nn_weight
 
-        self.device = device
+        self.device = args.device
+
+        if src_weights is None:
+            self.src_weights = None
+        else:
+            # TODO: the factor 4 is subject to change
+            # range: 1 - 5
+            self.src_weights: torch.Tensor = 1 + 4 * F.softmax(
+                torch.tensor(src_weights, dtype=torch.float, device=self.device), dim=-1
+            )
 
         self.nn_module = NeuralModule(d_emb=self.d_emb, n_hidden=self.n_hidden, n_src=self.n_src, n_obs=self.n_obs)
 
@@ -149,7 +159,11 @@ class NeuralHMM(nn.Module):
         # log-domain subtract is regular-domain divide
         self.log_emiss_probs = log_matmul(
             self.log_emiss, torch.log(obs).unsqueeze(-1)
-        ).squeeze(-1).sum(dim=-2)
+        ).squeeze(-1)
+
+        if self.src_weights is not None:
+            self.log_emiss_probs = self.log_emiss_probs * self.src_weights.unsqueeze(-1)
+        self.log_emiss_probs = self.log_emiss_probs.sum(dim=-2)
 
         self.log_alpha = torch.zeros([batch_size, max_seq_length, self.n_hidden], device=self.device)
         self.log_beta = torch.zeros([batch_size, max_seq_length, self.n_hidden], device=self.device)

@@ -45,6 +45,8 @@ def source_performance(args):
     for k, spans in weak_spans.items():
         src_results = get_results(spans, true_spans, sents, all_labels=args.lbs)
         for key, value in src_results['micro'].items():
+            if 'entity' not in key:
+                continue
             if key not in results:
                 results[key] = list()
             results[key].append(value)
@@ -52,4 +54,5 @@ def source_performance(args):
         pp.pprint(src_results)
 
     df = pd.DataFrame(data=results, index=weak_spans.keys())
+    df.index.name = 'function name'
     df.to_csv(os.path.join(args.output_dir, f"log.{args.dataset_name}.source-performance.csv"))

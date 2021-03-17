@@ -9,7 +9,7 @@
     "per_device_train_batch_size": 8,
     "denoising_batch_size": 128,
     "denoising_pretrain_epoch": 3,
-    "denoising_epoch": 3,
+    "denoising_epoch": 10,
     "per_device_eval_batch_size": 4,
     "save_steps": 999999999,
     "seed": 1,
@@ -26,5 +26,6 @@
     "obs_normalization": true,
     "redistribute_confidence": false,
     "true_lb_ratio": 0,
-    "device": "cuda"
+    "device": "cuda",
+    "use_src_weights": false
 }
