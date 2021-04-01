@@ -2,47 +2,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from Src.Utils import log_matmul, log_maxmul, validate_prob, logsumexp
-from Src.DataAssist import label_to_span
 from typing import Optional, List
 
-
-class NeuralModule(nn.Module):
-    def __init__(self,
-                 d_emb,
-                 n_hidden,
-                 n_src,
-                 n_obs):
-        super(NeuralModule, self).__init__()
-
-        self.n_hidden = n_hidden
-        self.n_src = n_src
-        self.n_obs = n_obs
-        self.neural_transition = nn.Linear(d_emb, self.n_hidden * self.n_hidden)
-        self.neural_emissions = nn.ModuleList([
-            nn.Linear(d_emb, self.n_hidden * self.n_obs) for _ in range(self.n_src)
-        ])
-
-        self._init_parameters()
-
-    def forward(self,
-                embs: torch.Tensor,
-                temperature: Optional[int] = 1.0):
-        batch_size, max_seq_length, _ = embs.size()
-        trans_temp = self.neural_transition(embs).view(
-            batch_size, max_seq_length, self.n_hidden, self.n_hidden
-        )
-        nn_trans = torch.softmax(trans_temp / temperature, dim=-1)
-
-        nn_emiss = torch.stack([torch.softmax(emiss(embs).view(
-                batch_size, max_seq_length, self.n_hidden, self.n_obs
-            ) / temperature, dim=-1) for emiss in self.neural_emissions]).permute(1, 2, 0, 3, 4)
-        return nn_trans, nn_emiss
-
-    def _init_parameters(self):
-        nn.init.xavier_uniform_(self.neural_transition.weight.data, gain=nn.init.calculate_gain('relu'))
-        for emiss in self.neural_emissions:
-            nn.init.xavier_uniform_(emiss.weight.data, gain=nn.init.calculate_gain('relu'))
+from Src.Utils import log_matmul, log_maxmul, validate_prob, logsumexp
+from Src.DataAssist import label_to_span
+from Src.CHMM.CHMMModules import NeuralModule
 
 
 class ConditionalHMM(nn.Module):
@@ -52,7 +16,8 @@ class ConditionalHMM(nn.Module):
                  state_prior=None,
                  trans_matrix=None,
                  emiss_matrix=None,
-                 src_weights: Optional[List[float]] = None):
+                 src_weights: Optional[List[float]] = None,
+                 use_src_attention_weights: Optional[bool] = True):
         super(ConditionalHMM, self).__init__()
 
         self.d_emb = args.d_emb  # embedding dimension
@@ -74,7 +39,12 @@ class ConditionalHMM(nn.Module):
                 torch.tensor(src_weights, dtype=torch.float, device=self.device), dim=-1
             )
 
-        self.nn_module = NeuralModule(d_emb=self.d_emb, n_hidden=self.n_hidden, n_src=self.n_src, n_obs=self.n_obs)
+        self.use_src_attention_weights = use_src_attention_weights
+        self.nn_module = NeuralModule(d_emb=self.d_emb,
+                                      n_hidden=self.n_hidden,
+                                      n_src=self.n_src,
+                                      n_obs=self.n_obs,
+                                      use_src_attention_weights=use_src_attention_weights)
 
         # initialize unnormalized state-prior, transition and emission matrices
         self._initialize_model(
@@ -161,7 +131,11 @@ class ConditionalHMM(nn.Module):
             self.log_emiss, torch.log(obs).unsqueeze(-1)
         ).squeeze(-1)
 
-        if self.src_weights is not None:
+        if self.use_src_attention_weights:
+            src_weights = self.nn_module.attention_forward(embs)
+            src_weights = 1 + 4 * src_weights
+            self.log_emiss_probs = self.log_emiss_probs * src_weights.unsqueeze(-1)
+        elif self.src_weights is not None:
             self.log_emiss_probs = self.log_emiss_probs * self.src_weights.unsqueeze(-1)
         self.log_emiss_probs = self.log_emiss_probs.sum(dim=-2)
 
@@ -249,7 +223,11 @@ class ConditionalHMM(nn.Module):
 
         return log_likelihood
 
-    def forward(self, emb, obs, seq_lengths, normalize_observation=True):
+    def forward(self,
+                emb,
+                obs,
+                seq_lengths,
+                normalize_observation=True):
         """
         """
         # the row of obs should be one-hot or at least sum to 1
@@ -260,7 +238,9 @@ class ConditionalHMM(nn.Module):
         assert n_src == self.n_src
 
         # Initialize alpha, beta and xi
-        self._initialize_states(embs=emb, obs=obs, normalize_observation=normalize_observation)
+        self._initialize_states(embs=emb,
+                                obs=obs,
+                                normalize_observation=normalize_observation)
         self._forward_backward(seq_lengths=seq_lengths)
         log_likelihood = self._expected_complete_log_likelihood(seq_lengths=seq_lengths)
         return log_likelihood, (self.log_trans, self.log_emiss)

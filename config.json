@@ -12,6 +12,7 @@
     "denoising_epoch": 10,
     "per_device_eval_batch_size": 4,
     "save_steps": 999999999,
+    "emiss_nn_weight": 0,
     "seed": 1,
     "do_train": true,
     "do_eval": true,
