@@ -48,5 +48,7 @@ do
       --obs_normalization \
       --overwrite_cache \
       --disable_tqdm True \
-      --update_embeddings
+      --update_embeddings False \
+      --use_src_attention_weights True
+
 done
