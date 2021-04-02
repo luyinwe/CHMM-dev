@@ -32,6 +32,7 @@ class CHMMTrainer:
         self.pretrain_optimizer = pretrain_optimizer
         self.optimizer = optimizer
         self.src_weights = src_weights
+
         self.state_prior = None
         self.trans_mat = None
         self.emiss_mat = None

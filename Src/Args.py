@@ -91,6 +91,9 @@ class Arguments:
     use_src_weights: bool = field(
         default=False, metadata={'help': 'whether to use source weights'}
     )
+    use_src_attention_weights: bool = field(
+        default=False, metadata={'help': 'whether to calculate attention weights for each source'}
+    )
     device: str = field(
         default='cuda', metadata={'help': 'the device you want to use'}
     )

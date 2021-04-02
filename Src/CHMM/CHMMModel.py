@@ -16,8 +16,7 @@ class ConditionalHMM(nn.Module):
                  state_prior=None,
                  trans_matrix=None,
                  emiss_matrix=None,
-                 src_weights: Optional[List[float]] = None,
-                 use_src_attention_weights: Optional[bool] = True):
+                 src_weights: Optional[List[float]] = None):
         super(ConditionalHMM, self).__init__()
 
         self.d_emb = args.d_emb  # embedding dimension
@@ -39,12 +38,12 @@ class ConditionalHMM(nn.Module):
                 torch.tensor(src_weights, dtype=torch.float, device=self.device), dim=-1
             )
 
-        self.use_src_attention_weights = use_src_attention_weights
+        self.use_src_attention_weights = args.use_src_attention_weights
         self.nn_module = NeuralModule(d_emb=self.d_emb,
                                       n_hidden=self.n_hidden,
                                       n_src=self.n_src,
                                       n_obs=self.n_obs,
-                                      use_src_attention_weights=use_src_attention_weights)
+                                      use_src_attention_weights=self.use_src_attention_weights)
 
         # initialize unnormalized state-prior, transition and emission matrices
         self._initialize_model(
