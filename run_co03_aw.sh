@@ -22,6 +22,7 @@ MAX_SEQ_LEN=256
 OUTPUT_DIR=./Co03
 MODEL=bert-base-uncased
 SEED=1
+EMISSION_NN_WEIGHT=0
 
 CUDA_VISIBLE_DEVICES=$1 python alt_train.py \
     --data_dir ../data/ \
@@ -34,4 +35,6 @@ CUDA_VISIBLE_DEVICES=$1 python alt_train.py \
     --nn_lr $NN_LR \
     --seed $SEED \
     --overwrite_cache \
-    --converse_first
+    --converse_first \
+    --emiss_nn_weight $EMISSION_NN_WEIGHT \
+    --use_src_attention_weights

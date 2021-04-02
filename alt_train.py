@@ -41,8 +41,12 @@ def main():
     # --- initialize result-storing file ---
     denoising_model = args.denoising_model if args.denoising_model else 'true'
     nhmm_output = os.path.join(
-        args.output_dir, f"{args.dataset_name}-{denoising_model}-{args.seed}_results"
+        args.output_dir, f"{args.dataset_name}-{denoising_model}-{args.seed}"
     )
+    if args.use_src_attention_weights:
+        nhmm_output += '.aw'
+    elif args.use_src_weights:
+        nhmm_output += '.w'
 
     # --- Set seed ---
     set_seed(args.seed)
@@ -64,7 +68,7 @@ def main():
     logger.info(" --- Neural HMM training is successfully finished --- ")
     logger.info(f" --- Writing results to {nhmm_output} ---")
 
-    with open(nhmm_output + '-1.txt', 'w') as f:
+    with open(nhmm_output + '.txt', 'w') as f:
         for i, micro_result in enumerate(micro_results):
             f.write(f"[Epoch] {i + 1}\n")
             for k, v in micro_result.items():
