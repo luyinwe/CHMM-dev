@@ -10,19 +10,19 @@
 # Quit if there's any errors
 set -e
 
-DATASET=BC5CDR
+DATASET=Laptop
 BERT_EPOCH=100
 PHASE2_EPOCH=20
-BERT_BATCH_SIZE=8
-DENOISING_BATCH_SIZE=64
+BATCH_SIZE=48
+DENOISING_BATCH_SIZE=128
 DENOISING_EPOCH=20
-DENOISING_PRETRAIN_EPOCH=5
-NN_LR=0.001
-MAX_SEQ_LEN=512
-OUTPUT_DIR=./BC5CDR
-MODEL=allenai/scibert_scivocab_uncased
+DENOISING_PRETRAIN_EPOCH=3
+NN_LR=0.0001
+MAX_SEQ_LEN=128
+OUTPUT_DIR=./Laptop
+MODEL=bert-base-uncased
 
-for SEED in 1 2 39 42
+for SEED in 1 2 42 24601
 do
   CUDA_VISIBLE_DEVICES=$1 python alt_train.py \
       --data_dir ../data/ \
@@ -33,8 +33,8 @@ do
       --max_seq_length $MAX_SEQ_LEN \
       --num_train_epochs $BERT_EPOCH \
       --phase2_train_epochs $PHASE2_EPOCH \
-      --per_device_train_batch_size $BERT_BATCH_SIZE \
-      --per_device_eval_batch_size $BERT_BATCH_SIZE \
+      --per_device_train_batch_size $BATCH_SIZE \
+      --per_device_eval_batch_size $BATCH_SIZE \
       --denoising_batch_size $DENOISING_BATCH_SIZE \
       --denoising_epoch $DENOISING_EPOCH \
       --denoising_pretrain_epoch $DENOISING_PRETRAIN_EPOCH \
@@ -50,3 +50,6 @@ do
       --disable_tqdm True \
       --update_embeddings
 done
+
+
+--data_dir ./data/ --dataset_name Laptop --denoising_model nhmm --output_dir ./Laptop --phase2_train_epochs 20 --denoising_batch_size 128 --denoising_epoch 20 --denoising_pretrain_epoch 30 --nn_lr 0.0001 --seed 1 --obs_normalization --overwrite_cache --update_embeddings
