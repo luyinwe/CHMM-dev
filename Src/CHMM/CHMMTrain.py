@@ -32,7 +32,6 @@ class CHMMTrainer:
         self.pretrain_optimizer = pretrain_optimizer
         self.optimizer = optimizer
         self.src_weights = src_weights
-
         self.state_prior = None
         self.trans_mat = None
         self.emiss_mat = None
@@ -137,7 +136,8 @@ class CHMMTrainer:
                 normalize_observation=self.args.obs_normalization
             )
 
-            loss = -log_probs.mean()
+            src_weights = torch.tensor(self.src_weights)
+            loss = -log_probs.mean() + ((self.emiss_mat - src_weights.expand(src_weights.shape[-1],src_weights.shape[0],src_weights.shape[-1]).permute(1,2,0))**2).sum()
             loss.backward()
             optimizer.step()
 
