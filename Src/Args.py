@@ -91,9 +91,6 @@ class Arguments:
     use_src_weights: bool = field(
         default=False, metadata={'help': 'whether to use source weights'}
     )
-    use_src_attention_weights: bool = field(
-        default=False, metadata={'help': 'whether to calculate attention weights for each source'}
-    )
     device: str = field(
         default='cuda', metadata={'help': 'the device you want to use'}
     )
@@ -140,6 +137,7 @@ def expend_args(args):
         args.src = BC5CDR_SOURCE_NAMES
         args.src_to_keep = BC5CDR_SOURCES_TO_KEEP
         args.src_priors = BC5CDR_SOURCE_PRIORS
+        args.src_weights = BC5CDR_SOURCE_WEIGHTS
     elif args.dataset_name == 'Co03':
         args.lbs = CoNLL_LABELS
         args.bio_lbs = OntoNotes_BIO if not args.converse_first else CoNLL_BIO
@@ -149,6 +147,7 @@ def expend_args(args):
         args.src_priors = CoNLL_SOURCE_PRIORS if not args.converse_first else CONLL_SRC_PRIORS
         args.mappings = CoNLL_MAPPINGS
         args.prior_name = 'CoNLL03-init-stat-all.pt'
+        args.src_weights = CoNLL_SOURCE_WEIGHTS
     else:
         json_name = os.path.join(args.data_dir, f'{args.dataset_name}-metadata.json')
         with open(json_name, 'r') as f:

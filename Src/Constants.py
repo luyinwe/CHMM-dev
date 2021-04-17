@@ -168,6 +168,46 @@ for src, priors in CoNLL_SOURCE_PRIORS.items():
         transferred_lbs[norm_lb] = tuple(transferred_lbs[norm_lb])
     CONLL_SRC_PRIORS[src] = transferred_lbs
 
+# CoNLL_SOURCE_WEIGHTS = {
+# 'BTC':0.01, 'BTC+c':0.6, 'SEC':0.01, 'SEC+c':0.4, 'company_type_detector':0.01, 'compound_detector':0.01,
+#                       'conll2003':0.01, 'conll2003+c':0.01, 'core_web_md':0.01, 'core_web_md+c':0.7, 'crunchbase_cased':0.4,
+#                       'crunchbase_uncased':0.35,
+#                       'date_detector':0.01,
+#                       'doc_history':0.01, 'doc_majority_cased':0.65, 'doc_majority_uncased':0.60, 'full_name_detector':0.9, 'geo_cased':0.7,
+#                       'geo_uncased':0.65,
+#                       'infrequent_compound_detector':0.01, 'infrequent_nnp_detector':0.01, 'infrequent_proper2_detector':0.01,
+#                       'infrequent_proper_detector':0.01,
+#                       'legal_detector':0.01, 'misc_detector':0.85, 'money_detector':0.01,
+#                       'multitoken_crunchbase_cased':0.01, 'multitoken_crunchbase_uncased':0.01, 'multitoken_geo_cased':0.01,
+#                       'multitoken_geo_uncased':0.01,
+#                       'multitoken_product_cased':0.01, 'multitoken_product_uncased':0.01, 'multitoken_wiki_cased':0.01,
+#                       'multitoken_wiki_small_cased':0.01,
+#                       'multitoken_wiki_small_uncased':0.01, 'multitoken_wiki_uncased':0.01, 'nnp_detector':0.01, 'number_detector':0.01,
+#                       'product_cased':0.01,
+#                       'product_uncased':0.01, 'proper2_detector':0.01, 'proper_detector':0.01, 'snips':0.01, 'time_detector':0.01, 'wiki_cased':0.75,
+#                       'wiki_small_cased':0.01,
+#                       'wiki_small_uncased':0.01, 'wiki_uncased':0.70
+# }
+
+CoNLL_SOURCE_WEIGHTS = {'BTC':0.01, 'BTC+c':[0.6156,0.5731,0.5731,0,0,0.4948,0.4948,0.7887,0.7887], 'SEC':0.01, 'SEC+c':[0.3954,0.3818,0.3818,0.8723,0.8723,0.1963,0.1963,0.7189,0.7189], 'company_type_detector':0.01, 'compound_detector':0.01,
+                      'conll2003':0.01, 'conll2003+c':0.01, 'core_web_md':0.01, 'core_web_md+c':[0.6953,0.7268,0.7268,0.678,0.678,0.5107,0.5107,0.8132,0.8132], 'crunchbase_cased':[0.3826,0,0,0,0,0.2993,0.2993,0.9189,0.9189],
+                      'crunchbase_uncased':[0.3788,0,0,0,0,0.305,0.305,0.9189,0.9189],
+                      'date_detector':0.01,
+                      'doc_history':0.01, 'doc_majority_cased':[0.6581,0.7554,0.7554,0.8261,0.8261,0.502,0.502,0.6196,0.6196], 'doc_majority_uncased':[0.6169,0.7434,0.7434,0.8063,0.8063,0.43,0.43,0.5924,0.5924], 'full_name_detector':[0.8779,0,0,0,0,0,0,0.8779,0.8779], 'geo_cased':[0.6816,0.6816,0.6816,0,0,0,0,0,0],
+                      'geo_uncased':[0.651,0.651,0.651,0,0,0,0,0,0],
+                      'infrequent_compound_detector':0.01, 'infrequent_nnp_detector':0.01, 'infrequent_proper2_detector':0.01,
+                      'infrequent_proper_detector':0.01,
+                      'legal_detector':0.01, 'misc_detector':[0.8514,0.9334,0.9334,0.7388,0.7388,0,0,0,0], 'money_detector':0.01,
+                      'multitoken_crunchbase_cased':0.01, 'multitoken_crunchbase_uncased':0.01, 'multitoken_geo_cased':0.01,
+                      'multitoken_geo_uncased':0.01,
+                      'multitoken_product_cased':0.01, 'multitoken_product_uncased':0.01, 'multitoken_wiki_cased':0.01,
+                      'multitoken_wiki_small_cased':0.01,
+                      'multitoken_wiki_small_uncased':0.01, 'multitoken_wiki_uncased':0.01, 'nnp_detector':0.01, 'number_detector':0.01,
+                      'product_cased':0.01,
+                      'product_uncased':0.01, 'proper2_detector':0.01, 'proper_detector':0.01, 'snips':0.01, 'time_detector':0.01, 'wiki_cased':[0.7527,0.6959,0.6959,0,0,0.9082,0.9082,0.8155,0.8155],
+                      'wiki_small_cased':0.01,
+                      'wiki_small_uncased':0.01, 'wiki_uncased':[0.7226,0.6763,0.6763,0,0,0.8744,0.8744,0.7784,0.7784]}
+
 NCBI_LABELS = ['DISEASE']
 NCBI_BIO = ["O"] + ["%s-%s" % (bi, label) for label in NCBI_LABELS for bi in "BI"]
 NCBI_INDICES = {label: i for i, label in enumerate(NCBI_BIO)}
@@ -232,11 +272,13 @@ LAPTOP_SOURCE_PRIORS = {
     'ConsecutiveCapitals': {'TERM': (0.7, 0.6)}
 }
 
+
+
 LAPTOP_SOURCE_WEIGHTS = {
-    'CoreDictionary': 0.7,
-    'OtherTerms': 0.1,
+    'CoreDictionary': [0.7,0.7,0.7],
+    'OtherTerms': [0.1,0.1,0.1],
     'ReplaceThe': 0.01,
-    'iStuff': 0.3,
+    'iStuff': [0.3,0.3,0.3],
     'Feelings': 0.01,
     'ProblemWithThe': 0.01,
     'External': 0.01,
@@ -247,9 +289,29 @@ LAPTOP_SOURCE_WEIGHTS = {
     "Adv": 0.01,
     "CompoundPhrase": 0.01,
     "ElmoLinkingRule": 0.01,
-    'ExtractedPhrase': 0.95,
-    'ConsecutiveCapitals': 0.35
+    'ExtractedPhrase': [0.95,0.95,0.95],
+    'ConsecutiveCapitals': [0.35,0.35,0.35],
 }
+
+
+# LAPTOP_SOURCE_WEIGHTS = {
+#     'CoreDictionary': 0.7,
+#     'OtherTerms': 0.1,
+#     'ReplaceThe': 0.01,
+#     'iStuff': 0.3,
+#     'Feelings': 0.01,
+#     'ProblemWithThe': 0.01,
+#     'External': 0.01,
+#     'StopWords': 0.01,
+#     "Punctuation": 0.01,
+#     "Pronouns": 0.01,
+#     "NotFeatures": 0.01,
+#     "Adv": 0.01,
+#     "CompoundPhrase": 0.01,
+#     "ElmoLinkingRule": 0.01,
+#     'ExtractedPhrase': 0.95,
+#     'ConsecutiveCapitals': 0.35,
+# }
 
 BC5CDR_LABELS = ['Chemical', 'Disease']
 BC5CDR_BIO = ["O"] + ["%s-%s" % (bi, label) for label in BC5CDR_LABELS for bi in "BI"]
@@ -302,4 +364,37 @@ BC5CDR_SOURCE_PRIORS = {
     'HyphenatedPrefix': {'Chemical': (0.2, 0.2), 'Disease': (0.2, 0.2)},
     'PostHyphen': {'Chemical': (0.8, 0.3), 'Disease': (0.8, 0.3)},
     'ExtractedPhrase': {'Chemical': (0.8, 0.3), 'Disease': (0.8, 0.3)},
+}
+
+BC5CDR_SOURCE_WEIGHTS = {
+    'DictCore-Chemical':0.9,
+    'DictCore-Chemical-Exact':0.85,
+    'DictCore-Disease':0.8,
+    'DictCore-Disease-Exact':0.8,
+    'Element, Ion, or Isotope':0.01,
+    'Organic Chemical':0.9,
+    'Antibiotic':0.01,
+    'Disease or Syndrome':0.75,
+    'BodyTerms':0.01,
+    'Acronyms':0.01,
+    'Damage':0.01,
+    'Disease':0.01,
+    'Disorder':0.01,
+    'Lesion':0.01,
+    'Syndrome':0.01,
+    'ChemicalSuffixes':0.01,
+    'CancerLike':0.01,
+    'DiseaseSuffixes':0.01,
+    'DiseasePrefixes':0.01,
+    'Induced':0.01,
+    'Vitamin':0.01,
+    'Acid':0.01,
+    'OtherPOS':0.01,
+    'StopWords':0.01,
+    'CommonOther':0.01,
+    'Punctuation':0.01,
+    'PossessivePhrase':0.01,
+    'HyphenatedPrefix':0.01,
+    'PostHyphen':0.85,
+    'ExtractedPhrase':0.85
 }
