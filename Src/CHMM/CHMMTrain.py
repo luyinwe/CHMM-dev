@@ -136,8 +136,8 @@ class CHMMTrainer:
                 normalize_observation=self.args.obs_normalization
             )
 
-            src_weights = torch.tensor(self.src_weights)
-            loss = -log_probs.mean() + ((self.emiss_mat - src_weights.expand(src_weights.shape[-1],src_weights.shape[0],src_weights.shape[-1]).permute(1,2,0))**2).sum()
+            loss = -log_probs.mean()
+
             loss.backward()
             optimizer.step()
 

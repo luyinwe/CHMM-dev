@@ -167,6 +167,12 @@ class ConditionalHMM(nn.Module):
             self.log_emiss, torch.log(obs).unsqueeze(-1)
         ).squeeze(-1)
 
+        tmp = self.src_weights.expand(self.src_weights.shape[-1], self.src_weights.shape[0],
+                                      self.src_weights.shape[-1]).permute(1, 2, 0)
+        self.l2_loss = -(1e-3*(torch.exp(self.log_emiss) - tmp) ** 2).sum()
+        print(self.l2_loss)
+
+
         if self.src_weights is not None:
             # # 1
             # self.log_emiss_probs = self.log_emiss_probs * self.src_weights.unsqueeze(-1)
@@ -257,8 +263,8 @@ class ConditionalHMM(nn.Module):
         log_emis = torch.sum(torch.exp(log_gamma) * self.log_emiss_probs, dim=-1)
         log_emis = torch.mean(torch.stack([inst[:length].sum() for inst, length in zip(log_emis, seq_lengths)]))
         log_likelihood = log_prior + log_tran + log_emis
-
-        return log_likelihood
+        # #
+        return log_likelihood + self.l2_loss
 
     def forward(self, emb, obs, seq_lengths, normalize_observation=True):
         """
